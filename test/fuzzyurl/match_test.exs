@@ -1,95 +1,99 @@
 defmodule Fuzzyurl.MatchTest do
-  use ExSpec, async: true
+  use ExUnit.Case, async: true
   import Fuzzyurl.Match
   doctest Fuzzyurl.Match
 
-  context "fuzzy_match" do
-    it "returns 0 for full wildcard" do
-      assert(0 == fuzzy_match("*", "lol"))
-      assert(0 == fuzzy_match("*", "*"))
-      assert(0 == fuzzy_match("*", nil))
+  describe "fuzzy_match" do
+    test "returns 0 for full wildcard" do
+      assert fuzzy_match("*", "lol") == 0
+      assert fuzzy_match("*", "*") == 0
+      assert fuzzy_match("*", nil) == 0
     end
 
-    it "returns 1 for exact match" do
-      assert(1 == fuzzy_match("asdf", "asdf"))
+    test "returns 1 for exact match" do
+      assert fuzzy_match("asdf", "asdf") == 1
     end
 
-    it "handles *.example.com" do
-      assert(0 == fuzzy_match("*.example.com", "api.v1.example.com"))
-      assert(nil == fuzzy_match("*.example.com", "example.com"))
+    test "handles *.example.com" do
+      assert fuzzy_match("*.example.com", "api.v1.example.com") == 0
+      assert fuzzy_match("*.example.com", "example.com") == nil
     end
 
-    it "handles **.example.com" do
-      assert(0 == fuzzy_match("**.example.com", "api.v1.example.com"))
-      assert(0 == fuzzy_match("**.example.com", "example.com"))
-      assert(nil == fuzzy_match("**.example.com", "zzzexample.com"))
+    test "handles **.example.com" do
+      assert fuzzy_match("**.example.com", "api.v1.example.com") == 0
+      assert fuzzy_match("**.example.com", "example.com") == 0
+      assert fuzzy_match("**.example.com", "zzzexample.com") == nil
     end
 
-    it "handles path/*" do
-      assert(0 == fuzzy_match("path/*", "path/a/b/c"))
-      assert(nil == fuzzy_match("path/*", "path"))
+    test "handles path/*" do
+      assert fuzzy_match("path/*", "path/a/b/c") == 0
+      assert fuzzy_match("path/*", "path") == nil
     end
 
-    it "handles path/**" do
-      assert(0 == fuzzy_match("path/**", "path/a/b/c"))
-      assert(0 == fuzzy_match("path/**", "path"))
-      assert(nil == fuzzy_match("path/**", "pathzzz"))
+    test "handles path/**" do
+      assert fuzzy_match("path/**", "path/a/b/c") == 0
+      assert fuzzy_match("path/**", "path") == 0
+      assert fuzzy_match("path/**", "pathzzz") == nil
     end
 
-    it "returns nil for bad matches with no wildcards" do
-      assert(nil == fuzzy_match("asdf", "oh no"))
+    test "returns nil for bad matches with no wildcards" do
+      assert fuzzy_match("asdf", "oh no") == nil
     end
   end
 
-  context "match" do
-    it "returns 0 for full wildcard" do
-      assert(0 == match(Fuzzyurl.mask(), Fuzzyurl.new()))
+  describe "match" do
+    test "returns 0 for full wildcard" do
+      assert match(Fuzzyurl.mask(), Fuzzyurl.new()) == 0
     end
 
-    it "returns 8 for full exact match" do
+    test "returns 8 for full exact match" do
       fu = Fuzzyurl.new("a", "b", "c", "d", "e", "f", "g", "h")
-      assert(8 == match(fu, fu))
+
+      assert match(fu, fu) == 8
     end
 
-    it "returns 1 for one exact match" do
+    test "returns 1 for one exact match" do
       mask = %{Fuzzyurl.mask() | hostname: "example.com"}
       url = %Fuzzyurl{hostname: "example.com", protocol: "http", path: "/index.html"}
-      assert(1 == match(mask, url))
+
+      assert match(mask, url) == 1
     end
 
-    it "infers protocol from port" do
+    test "infers protocol from port" do
       mask = %{Fuzzyurl.mask() | port: "80"}
       url = %Fuzzyurl{protocol: "http"}
-      assert(1 == match(mask, url))
-      assert(nil == match(mask, %Fuzzyurl{url | port: "443"}))
+
+      assert match(mask, url) == 1
+      assert match(mask, %Fuzzyurl{url | port: "443"}) == nil
     end
 
-    it "infers port from protocol" do
+    test "infers port from protocol" do
       mask = %{Fuzzyurl.mask() | protocol: "https"}
       url = %Fuzzyurl{port: "443"}
-      assert(1 == match(mask, url))
-      assert(nil == match(mask, %Fuzzyurl{url | protocol: "http"}))
+
+      assert match(mask, url) == 1
+      assert match(mask, %Fuzzyurl{url | protocol: "http"}) == nil
     end
   end
 
-  context "matches?" do
-    it "returns true on matches" do
-      assert(true == matches?(Fuzzyurl.mask(), Fuzzyurl.new()))
+  describe "matches?" do
+    test "returns true on matches" do
+      assert matches?(Fuzzyurl.mask(), Fuzzyurl.new()) == true
     end
 
-    it "returns false on non-matches" do
-      assert(false == matches?(Fuzzyurl.mask(port: "666"), Fuzzyurl.new()))
+    test "returns false on non-matches" do
+      assert matches?(Fuzzyurl.mask(port: "666"), Fuzzyurl.new()) == false
     end
   end
 
-  context "match_scores" do
-    it "returns all zeroes for full wildcard" do
+  describe "match_scores" do
+    test "returns all zeroes for full wildcard" do
       scores =
         match_scores(Fuzzyurl.mask(), Fuzzyurl.new())
         |> Map.from_struct()
         |> Map.values()
 
-      assert(false == Enum.any?(scores, fn x -> x != 0 end))
+      assert Enum.any?(scores, fn x -> x != 0 end) == false
     end
   end
 end

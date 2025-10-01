@@ -1,26 +1,36 @@
 defmodule Fuzzyurl.Strings do
-  @moduledoc ~S"""
+  @moduledoc """
   Functions to parse a string URL into a Fuzzyurl, and vice versa.
   """
 
-  ## this regex matches URLs like this:
-  ## [protocol ://] [username [: password] @] [hostname] [: port] [/ path] [? query] [# fragment]
-  @regex ~r"""
-    ^
-    (?: (?<protocol> \* | [a-zA-Z][A-Za-z+.-]+) ://)?
-    (?: (?<username> \* | [a-zA-Z0-9%_.!~*'();&=+$,-]+)
-        (?: : (?<password> \* | [a-zA-Z0-9%_.!~*'();&=+$,-]*))?
-        @
-    )?
-    (?<hostname> [a-zA-Z0-9\.\*\-_]+?)?
-    (?: : (?<port> \* | \d+))?
-    (?<path> / [^\?\#]*)?                 ## captures leading /
-    (?: \? (?<query> [^\#]*) )?
-    (?: \# (?<fragment> .*) )?
-    $
-  """x
+  @doc """
+  Returns the regex for matching URLs.
 
-  @doc ~S"""
+  This regex matches URLs like this:
+
+      [protocol ://] [username [: password] @] [hostname] [: port] [/ path] [? query] [# fragment]
+
+  """
+  @compile {:inline, regex: 0}
+  @spec regex() :: Regex.t()
+  def regex do
+    ~r"""
+      ^
+      (?: (?<protocol> \* | [a-zA-Z][A-Za-z+.-]+) ://)?
+      (?: (?<username> \* | [a-zA-Z0-9%_.!~*'();&=+$,-]+)
+          (?: : (?<password> \* | [a-zA-Z0-9%_.!~*'();&=+$,-]*))?
+          @
+      )?
+      (?<hostname> [a-zA-Z0-9\.\*\-_]+?)?
+      (?: : (?<port> \* | \d+))?
+      (?<path> / [^\?\#]*)?                 ## captures leading /
+      (?: \? (?<query> [^\#]*) )?
+      (?: \# (?<fragment> .*) )?
+      $
+    """x
+  end
+
+  @doc """
   Attempts to parse the given string as a URL, and returns either
   {:ok, fuzzy_url} or {:error, message}.
   """
@@ -28,7 +38,7 @@ defmodule Fuzzyurl.Strings do
   def from_string(string, opts \\ [])
 
   def from_string(string, opts) when is_binary(string) do
-    case Regex.named_captures(@regex, string) do
+    case Regex.named_captures(regex(), string) do
       nil ->
         {:error, "input string couldn't be parsed"}
 
@@ -46,23 +56,17 @@ defmodule Fuzzyurl.Strings do
     dv = opts[:default]
     blank_fu = Fuzzyurl.new(dv, dv, dv, dv, dv, dv, dv, dv)
 
-    nc
-    |> Map.to_list()
-    |> Enum.reduce(blank_fu, fn {k, v}, acc ->
-      if v != "" do
-        Map.put(acc, String.to_atom(k), v)
-      else
-        acc
-      end
-    end)
+    for {k, v} <- nc, v != "", reduce: blank_fu do
+      acc -> %{acc | String.to_atom(k) => v}
+    end
   end
 
-  @doc ~S"""
+  @doc """
   Returns a string representation of the given Fuzzyurl.
   """
   @spec to_string(%Fuzzyurl{}) :: String.t()
   def to_string(%Fuzzyurl{} = fu) do
-    url_pieces = [
+    [
       if(fu.protocol, do: "#{fu.protocol}://", else: ""),
       if(fu.username, do: "#{fu.username}", else: ""),
       if(fu.password, do: ":#{fu.password}", else: ""),
@@ -73,7 +77,6 @@ defmodule Fuzzyurl.Strings do
       if(fu.query, do: "?#{fu.query}", else: ""),
       if(fu.fragment, do: "##{fu.fragment}", else: "")
     ]
-
-    url_pieces |> Enum.join()
+    |> Enum.join()
   end
 end
