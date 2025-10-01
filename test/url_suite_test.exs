@@ -1,23 +1,19 @@
 defmodule Fuzzyurl.UrlSuiteTest do
-  use ExSpec, async: true
+  use ExUnit.Case, async: true
 
-  @matches File.read!("./test/matches.json") |> Jason.decode!()
+  @matches File.read!("./test/matches.json") |> JSON.decode!()
 
-  context "URL test suite" do
-    it "handles all positive matches" do
-      @matches["positive_matches"]
-      |> Enum.map(fn
-        [mask, url] -> assert(Fuzzyurl.matches?(mask, url), "'#{mask}' should match '#{url}'")
-        _ -> nil
-      end)
+  describe "URL test suite" do
+    test "handles all positive matches" do
+      for [mask, url] <- @matches["positive_matches"] do
+        assert Fuzzyurl.matches?(mask, url), "'#{mask}' should match '#{url}'"
+      end
     end
 
-    it "handles all negative matches" do
-      @matches["negative_matches"]
-      |> Enum.map(fn
-        [mask, url] -> refute(Fuzzyurl.matches?(mask, url), "'#{mask}' should not match '#{url}'")
-        _ -> nil
-      end)
+    test "handles all negative matches" do
+      for [mask, url] <- @matches["negative_matches"] do
+        refute Fuzzyurl.matches?(mask, url), "'#{mask}' should not match '#{url}'"
+      end
     end
   end
 end

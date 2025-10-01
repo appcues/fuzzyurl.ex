@@ -1,22 +1,22 @@
 defmodule Fuzzyurl.ProtocolsTest do
-  use ExSpec, async: true
+  use ExUnit.Case, async: true
   import Fuzzyurl.Protocols
   doctest Fuzzyurl.Protocols
 
-  context "get_port" do
-    it "gets port by protocol" do
-      assert("80" == get_port("http"))
-      assert("22" == get_port("ssh"))
-      assert("22" == get_port("git+ssh"))
-      assert(nil == get_port(nil))
+  describe "get_port" do
+    test "gets port by protocol" do
+      assert get_port("http") == "80"
+      assert get_port("ssh") == "22"
+      assert get_port("git+ssh") == "22"
+      assert get_port(nil) == nil
     end
   end
 
-  context "get_protocol" do
-    it "gets protocol by port" do
-      assert("http" == get_protocol("80"))
-      assert("http" == get_protocol(80))
-      assert(nil == get_protocol(nil))
+  describe "get_protocol" do
+    test "gets protocol by port" do
+      assert get_protocol("80") == "http"
+      assert get_protocol(80) == "http"
+      assert get_protocol(nil) == nil
     end
   end
 end

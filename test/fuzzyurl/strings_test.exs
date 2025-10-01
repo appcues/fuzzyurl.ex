@@ -1,61 +1,54 @@
 defmodule Fuzzyurl.StringsTest do
-  use ExSpec, async: true
+  use ExUnit.Case, async: true
   doctest Fuzzyurl.Strings
 
-  context "from_string" do
+  describe "from_string" do
     import Fuzzyurl.Strings, only: [from_string: 1]
 
-    it "handles simple URLs" do
-      assert({:ok, _} = from_string("http://example.com"))
-      assert({:ok, _} = from_string("ssh://user:pass@host"))
-      assert({:ok, _} = from_string("https://example.com:443/omg/lol"))
-      assert({:ok, _} = from_string(""))
+    test "handles simple URLs" do
+      assert {:ok, _} = from_string("http://example.com")
+      assert {:ok, _} = from_string("ssh://user:pass@host")
+      assert {:ok, _} = from_string("https://example.com:443/omg/lol")
+      assert {:ok, _} = from_string("")
     end
 
-    it "rejects bullshit" do
-      assert({:error, _} = from_string(nil))
-      assert({:error, _} = from_string(22))
+    test "rejects bullshit" do
+      assert {:error, _} = from_string(nil)
+      assert {:error, _} = from_string(22)
     end
 
-    it "handles rich URLs" do
-      assert(
-        {:ok, fu} =
-          from_string(
-            "http://user_1:pass%20word@foo.example.com:8000/some/path?awesome=true&encoding=ebcdic#/hi/mom"
-          )
-      )
+    test "handles rich URLs" do
+      assert {:ok, fu} =
+               from_string(
+                 "http://user_1:pass%20word@foo.example.com:8000/some/path?awesome=true&encoding=ebcdic#/hi/mom"
+               )
 
-      assert("http" == fu.protocol)
-      assert("user_1" == fu.username)
-      assert("pass%20word" == fu.password)
-      assert("foo.example.com" == fu.hostname)
-      assert("8000" == fu.port)
-      assert("/some/path" == fu.path)
-      assert("awesome=true&encoding=ebcdic" == fu.query)
-      assert("/hi/mom" == fu.fragment)
+      assert fu.protocol == "http"
+      assert fu.username == "user_1"
+      assert fu.password == "pass%20word"
+      assert fu.hostname == "foo.example.com"
+      assert fu.port == "8000"
+      assert fu.path == "/some/path"
+      assert fu.query == "awesome=true&encoding=ebcdic"
+      assert fu.fragment == "/hi/mom"
     end
   end
 
-  context "to_string" do
-    it "handles simple URLs" do
-      assert("example.com" == Fuzzyurl.Strings.to_string(%Fuzzyurl{hostname: "example.com"}))
+  describe "to_string" do
+    test "handles simple URLs" do
+      assert Fuzzyurl.Strings.to_string(%Fuzzyurl{hostname: "example.com"}) == "example.com"
 
-      assert(
-        "http://example.com" ==
-          Fuzzyurl.Strings.to_string(%Fuzzyurl{protocol: "http", hostname: "example.com"})
-      )
+      assert Fuzzyurl.Strings.to_string(%Fuzzyurl{protocol: "http", hostname: "example.com"}) ==
+               "http://example.com"
 
-      assert(
-        "http://example.com/oh/yeah" ==
-          Fuzzyurl.Strings.to_string(%Fuzzyurl{
-            protocol: "http",
-            hostname: "example.com",
-            path: "/oh/yeah"
-          })
-      )
+      assert Fuzzyurl.Strings.to_string(%Fuzzyurl{
+               protocol: "http",
+               hostname: "example.com",
+               path: "/oh/yeah"
+             }) == "http://example.com/oh/yeah"
     end
 
-    it "handles rich URLs" do
+    test "handles rich URLs" do
       fu = %Fuzzyurl{
         protocol: "https",
         username: "usah",
@@ -67,10 +60,8 @@ defmodule Fuzzyurl.StringsTest do
         fragment: "index"
       }
 
-      assert(
-        Fuzzyurl.Strings.to_string(fu) ==
-          "https://usah:pash@api.example.com:443/secret/endpoint?admin=true#index"
-      )
+      assert Fuzzyurl.Strings.to_string(fu) ==
+               "https://usah:pash@api.example.com:443/secret/endpoint?admin=true#index"
     end
   end
 end
